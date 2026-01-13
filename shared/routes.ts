@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertGreetingSchema, greetings } from './schema';
+import { greetings } from './schema';
 
 export const errorSchemas = {
   notFound: z.object({ message: z.string() }),
@@ -12,6 +12,28 @@ export const api = {
       path: '/api/greetings',
       responses: {
         200: z.array(z.custom<typeof greetings.$inferSelect>()),
+      },
+    },
+  },
+  auth: {
+    register: {
+      method: 'POST' as const,
+      path: '/api/auth/register',
+      responses: {
+        201: z.object({
+          id: z.number(),
+          username: z.string(),
+        }),
+      },
+    },
+    login: {
+      method: 'POST' as const,
+      path: '/api/auth/login',
+      responses: {
+        200: z.object({
+          id: z.number(),
+          username: z.string(),
+        }),
       },
     },
   },
