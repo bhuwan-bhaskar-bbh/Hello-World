@@ -1,9 +1,19 @@
+import { eq } from "drizzle-orm";
 import { db } from "./db";
-import { greetings, type Greeting, type InsertGreeting } from "@shared/schema";
+import {
+  greetings,
+  users,
+  type Greeting,
+  type InsertGreeting,
+  type InsertUser,
+  type User,
+} from "@shared/schema";
 
 export interface IStorage {
   getGreetings(): Promise<Greeting[]>;
   createGreeting(greeting: InsertGreeting): Promise<Greeting>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -14,6 +24,16 @@ export class DatabaseStorage implements IStorage {
   async createGreeting(insertGreeting: InsertGreeting): Promise<Greeting> {
     const [greeting] = await db.insert(greetings).values(insertGreeting).returning();
     return greeting;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
   }
 }
 
