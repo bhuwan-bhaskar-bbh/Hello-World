@@ -5,6 +5,8 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 
 const PASSWORD_KEY_LENGTH = 64;
+const SUPPORTED_SOCIAL_PROVIDERS = ["google", "facebook"] as const;
+type SocialProvider = (typeof SUPPORTED_SOCIAL_PROVIDERS)[number];
 
 function hashPassword(password: string) {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -15,6 +17,18 @@ function hashPassword(password: string) {
 function verifyPassword(password: string, salt: string, hash: string) {
   const derivedKey = crypto.scryptSync(password, salt, PASSWORD_KEY_LENGTH).toString("hex");
   return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(derivedKey, "hex"));
+}
+
+function normalizeProvider(provider: string): SocialProvider | null {
+  const normalized = provider.trim().toLowerCase();
+  return SUPPORTED_SOCIAL_PROVIDERS.includes(normalized as SocialProvider)
+    ? (normalized as SocialProvider)
+    : null;
+}
+
+function normalizeUsername(baseName: string) {
+  const cleaned = baseName.trim().replace(/[^a-zA-Z0-9]+/g, "").toLowerCase();
+  return cleaned || "socialuser";
 }
 
 export async function registerRoutes(
@@ -57,6 +71,47 @@ export async function registerRoutes(
     if (!user || !verifyPassword(String(password), user.passwordSalt, user.passwordHash)) {
       return res.status(401).json({ message: "Invalid username or password." });
     }
+
+    return res.status(200).json({ id: user.id, username: user.username });
+  });
+
+  app.post(api.auth.social.path, async (req, res) => {
+    const { provider, providerUserId, displayName } = req.body ?? {};
+    if (!provider || !providerUserId) {
+      return res.status(400).json({ message: "Provider and provider user ID are required." });
+    }
+
+    const normalizedProvider = normalizeProvider(String(provider));
+    if (!normalizedProvider) {
+      return res.status(400).json({ message: "Unsupported provider." });
+    }
+
+    const existingUser = await storage.getUserByAuthProvider(
+      normalizedProvider,
+      String(providerUserId),
+    );
+    if (existingUser) {
+      return res.status(200).json({ id: existingUser.id, username: existingUser.username });
+    }
+
+    const baseName = displayName ? String(displayName) : `${normalizedProvider} user`;
+    const normalizedBase = normalizeUsername(baseName);
+    let candidate = normalizedBase;
+    let counter = 1;
+    while (await storage.getUserByUsername(candidate)) {
+      candidate = `${normalizedBase}${counter}`;
+      counter += 1;
+    }
+
+    const randomPassword = crypto.randomBytes(32).toString("hex");
+    const { salt, hash } = hashPassword(randomPassword);
+    const user = await storage.createUser({
+      username: candidate,
+      passwordHash: hash,
+      passwordSalt: salt,
+      authProvider: normalizedProvider,
+      authProviderId: String(providerUserId),
+    });
 
     return res.status(200).json({ id: user.id, username: user.username });
   });

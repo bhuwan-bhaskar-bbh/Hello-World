@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "./db";
 import {
   greetings,
@@ -13,6 +13,7 @@ export interface IStorage {
   getGreetings(): Promise<Greeting[]>;
   createGreeting(greeting: InsertGreeting): Promise<Greeting>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByAuthProvider(provider: string, providerId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 }
 
@@ -28,6 +29,14 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserByAuthProvider(provider: string, providerId: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.authProvider, provider), eq(users.authProviderId, providerId)));
     return user;
   }
 

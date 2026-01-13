@@ -10,6 +10,12 @@ type AuthUser = {
   id: number;
   username: string;
 };
+type SocialProvider = "google" | "facebook";
+
+const SOCIAL_PROVIDERS: { id: SocialProvider; label: string }[] = [
+  { id: "google", label: "Google" },
+  { id: "facebook", label: "Facebook" },
+];
 
 export default function Home() {
   const { data: greetings, isLoading, error } = useGreetings();
@@ -70,6 +76,53 @@ export default function Home() {
           ? `Welcome back, ${data.username}.`
           : `Account created. Welcome, ${data.username}.`
       );
+    } catch (error) {
+      setAuthError("Unable to reach the server.");
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const getOrCreateProviderId = (provider: SocialProvider) => {
+    const storageKey = `socialAuth:${provider}`;
+    const existing = localStorage.getItem(storageKey);
+    if (existing) return existing;
+    const newId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${provider}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    localStorage.setItem(storageKey, newId);
+    return newId;
+  };
+
+  const handleSocialLogin = async (provider: SocialProvider) => {
+    setAuthError(null);
+    setAuthNotice(null);
+    setIsAuthLoading(true);
+
+    const providerLabel = SOCIAL_PROVIDERS.find((item) => item.id === provider)?.label ?? provider;
+    const payload = {
+      provider,
+      providerUserId: getOrCreateProviderId(provider),
+      displayName: `${providerLabel} User`,
+    };
+
+    try {
+      const response = await fetch(api.auth.social.path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setAuthError(data?.message ?? "Unable to authenticate.");
+        return;
+      }
+
+      setAuthUser(data);
+      localStorage.setItem("authUser", JSON.stringify(data));
+      setAuthNotice(`Signed in with ${providerLabel}.`);
     } catch (error) {
       setAuthError("Unable to reach the server.");
     } finally {
@@ -218,6 +271,24 @@ export default function Home() {
                       <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   </form>
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="h-px flex-1 bg-border/60" />
+                    <span>or continue with</span>
+                    <span className="h-px flex-1 bg-border/60" />
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {SOCIAL_PROVIDERS.map((provider) => (
+                      <button
+                        key={provider.id}
+                        type="button"
+                        disabled={isAuthLoading}
+                        onClick={() => handleSocialLogin(provider.id)}
+                        className="inline-flex w-full items-center justify-center rounded-full border border-border bg-white px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-primary disabled:opacity-60"
+                      >
+                        Continue with {provider.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

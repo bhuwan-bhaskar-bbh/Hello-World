@@ -12,6 +12,8 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   passwordSalt: text("password_salt").notNull(),
+  authProvider: text("auth_provider"),
+  authProviderId: text("auth_provider_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -23,6 +25,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   passwordHash: true,
   passwordSalt: true,
+  authProvider: true,
+  authProviderId: true,
 });
 
 export type Greeting = typeof greetings.$inferSelect;
