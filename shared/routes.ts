@@ -36,6 +36,16 @@ export const api = {
         }),
       },
     },
+    social: {
+      method: 'POST' as const,
+      path: '/api/auth/social',
+      responses: {
+        200: z.object({
+          id: z.number(),
+          username: z.string(),
+        }),
+      },
+    },
   },
 };
 
