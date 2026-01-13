@@ -12,7 +12,7 @@ export default function Home() {
     : "Welcome to your new app.";
 
   return (
-    <div className="min-h-screen w-full bg-[#FAFAFA] flex flex-col items-center justify-center p-4 md:p-8">
+    <div className="min-h-screen w-full bg-background flex flex-col items-center justify-center p-4 md:p-8">
       
       {/* Decorative gradient blur in background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">

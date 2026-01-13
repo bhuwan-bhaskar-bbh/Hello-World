@@ -9,8 +9,10 @@
   --font-display: 'Instrument Serif', serif;
 
   /* Clean Minimal Palette - Crisp White & Deep Charcoal */
-  --background: 0 0% 100%;
-  --foreground: 220 14% 10%;
+  /* site background: black */
+  --background: 0 0% 0%;
+  /* site foreground (text): white */
+  --foreground: 0 0% 100%;
   
   --primary: 220 14% 10%;
   --primary-foreground: 0 0% 100%;
